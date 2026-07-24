@@ -35,9 +35,10 @@ export const fetchOllama = async (
     if (data.message && data.message.content) {
       onChunk(data.message.content);
     }
-  } catch (error) {
-    console.error('Ollama Fetch Error:', error);
-    onChunk('\n[Error: Could not connect to Termux server. Is Ollama running?]');
+    } catch (error: any) {
+    console.error('Ollama Fetch Error:', error.message || error);
+    onChunk(`\n[Connection Error]: ${error.message || 'Unknown network failure.'}`);
   }
+
 };
 

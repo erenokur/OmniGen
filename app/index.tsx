@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   TextInput, 
   TouchableOpacity, 
   FlatList, 
   StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform,
   Text,
-  ActivityIndicator
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
 import { generateResponse } from '../services/AIRouter';
 import { ChatBubble } from '../components/ChatBubble';
@@ -18,8 +20,22 @@ import { ProviderMenu } from '../components/ProviderMenu';
 
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
+  const flatListRef = useRef<FlatList>(null);
   
-  const { messages, addMessage, isGenerating } = useAIStore();
+  // State from Zustand
+  const { messages, addMessage, isGenerating, activeProviderId } = useAIStore();
+  
+  // Dynamically calculate the phone's physical bounds
+  const insets = useSafeAreaInsets();
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isGenerating) return;
@@ -31,6 +47,9 @@ export default function ChatScreen() {
     });
 
     setInputText('');
+    
+    // Optional: Dismiss keyboard on send for a cleaner view
+    // Keyboard.dismiss();
 
     addMessage({
       id: (Date.now() + 1).toString(),
@@ -41,106 +60,114 @@ export default function ChatScreen() {
     await generateResponse();
   };
 
-     return (
-    // 1. Removed 'bottom' from edges so it doesn't conflict with the keyboard
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <KeyboardAvoidingView 
-        style={styles.container} 
-        // 2. Force behavior for Android
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        // Optional: add keyboardVerticalOffset if it still overlaps slightly
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        <View style={styles.header}>
-          <ProviderMenu />
-        </View>
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container}
+      // Force padding on BOTH iOS and Android because of edgeToEdgeEnabled: true
+      behavior="padding"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.innerContainer}>
+          
+          {/* Header: Manual top padding handles the notch */}
+          <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+            <ProviderMenu />
+          </View>
 
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ChatBubble message={item} />}
-          contentContainerStyle={styles.listContent}
-        />
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Message local Ollama..."
-            multiline
-            maxLength={1000}
+          {/* Chat Messages */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <ChatBubble message={item} />}
+            contentContainerStyle={styles.listContent}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           />
-          <TouchableOpacity 
-            style={[styles.sendButton, (!inputText.trim() || isGenerating) && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!inputText.trim() || isGenerating}
-          >
-            {isGenerating ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.sendButtonText}>Send</Text>
-            )}
-          </TouchableOpacity>
+
+          {/* Input Area: Manual bottom padding handles the home indicator when keyboard is closed */}
+          <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder={activeProviderId ? "Type a message..." : "Add a provider first"}
+              multiline
+              maxLength={1000}
+              editable={!!activeProviderId}
+            />
+            <TouchableOpacity 
+              style={[styles.sendButton, (!inputText.trim() || isGenerating || !activeProviderId) && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={!inputText.trim() || isGenerating || !activeProviderId}
+            >
+              {isGenerating ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>Send</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F2F2F7', // Arka plan rengini bütüne yaymak için
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F2F2F7' 
   },
-  container: {
+  innerContainer: {
     flex: 1,
   },
   header: { 
     padding: 16, 
+    paddingBottom: 12,
     borderBottomWidth: 1, 
     borderColor: '#E5E5EA', 
-    alignItems: 'flex-end', 
-    backgroundColor: '#FFF' 
+    backgroundColor: '#FFF', 
+    alignItems: 'flex-end' 
   },
-  listContent: {
+  listContent: { 
     paddingVertical: 16,
+    paddingHorizontal: 8
   },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderColor: '#E5E5EA',
-    alignItems: 'flex-end',
+  inputWrapper: { 
+    flexDirection: 'row', 
+    padding: 12, 
+    backgroundColor: '#FFFFFF', 
+    borderTopWidth: 1, 
+    borderColor: '#E5E5EA', 
+    alignItems: 'flex-end' 
   },
-  input: {
-    flex: 1,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    minHeight: 40,
-    maxHeight: 120,
-    fontSize: 16,
+  input: { 
+    flex: 1, 
+    backgroundColor: '#F2F2F7', 
+    borderRadius: 20, 
+    paddingHorizontal: 16, 
+    paddingTop: 10, 
+    paddingBottom: 10, 
+    minHeight: 40, 
+    maxHeight: 120, 
+    fontSize: 16 
   },
-  sendButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    height: 40,
-    justifyContent: 'center',
+  sendButton: { 
+    backgroundColor: '#007AFF', 
+    borderRadius: 20, 
+    paddingHorizontal: 16, 
+    height: 40, 
+    justifyContent: 'center', 
     marginLeft: 8,
-    marginBottom: 2,
+    marginBottom: 0
   },
-  sendButtonDisabled: {
-    backgroundColor: '#A1C6EA',
+  sendButtonDisabled: { 
+    backgroundColor: '#A1C6EA' 
   },
-  sendButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
+  sendButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    fontSize: 16 
   },
 });
-
