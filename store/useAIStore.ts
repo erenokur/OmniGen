@@ -27,8 +27,9 @@ interface AIStore {
   
   addMessage: (message: Message) => void;
   updateLastMessage: (chunk: string) => void;
+  replaceLastMessage: (content: string) => void; // Yeni eklendi!
   setIsGenerating: (status: boolean) => void;
-  clearMessages: () => void;
+  clearMessages: () => set({ messages: [] }),
   setActiveProvider: (id: string) => void;
   addProvider: (provider: Provider) => void;
 }
@@ -37,8 +38,8 @@ export const useAIStore = create<AIStore>()(
   persist(
     (set) => ({
       messages: [],
-      providers: [], // Empty by default
-      activeProviderId: null, // No default connection
+      providers: [], 
+      activeProviderId: null, 
       isGenerating: false,
 
       addMessage: (message) => 
@@ -48,8 +49,17 @@ export const useAIStore = create<AIStore>()(
         set((state) => {
           const newMessages = [...state.messages];
           if (newMessages.length > 0) {
-            const lastIndex = newMessages.length - 1;
-            newMessages[lastIndex].content += chunk;
+            newMessages[newMessages.length - 1].content += chunk;
+          }
+          return { messages: newMessages };
+        }),
+
+      // Bu fonksiyon hata mesajlarını veya "Bağlanıyor" yazılarını temizlemek için eklendi
+      replaceLastMessage: (content) =>
+        set((state) => {
+          const newMessages = [...state.messages];
+          if (newMessages.length > 0) {
+            newMessages[newMessages.length - 1].content = content;
           }
           return { messages: newMessages };
         }),
@@ -61,9 +71,8 @@ export const useAIStore = create<AIStore>()(
         set((state) => ({ providers: [...state.providers, provider], activeProviderId: provider.id })),
     }),
     {
-      name: 'ai-app-storage', // The file name in device storage
+      name: 'ai-app-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );
-

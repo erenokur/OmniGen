@@ -3,16 +3,15 @@ import { Message, Provider } from '../store/useAIStore';
 export const fetchOllama = async (
   messages: Message[],
   provider: Provider,
-  onChunk: (text: string) => void
+  onSuccess: (text: string) => void,
+  onError: (text: string) => void
 ): Promise<void> => {
   try {
-    // We only send the role and content to the API
     const formattedMessages = messages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    // Make the HTTP request to the Termux localhost server
     const response = await fetch(`${provider.baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
@@ -21,24 +20,30 @@ export const fetchOllama = async (
       body: JSON.stringify({
         model: provider.defaultModel,
         messages: formattedMessages,
-        stream: false, // Set to false to avoid React Native fetch stream lockups
+        stream: false,
       }),
     });
 
+    // Parse etmeden önce veriyi düz metin olarak alıyoruz
+    const rawText = await response.text();
+
     if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
+      onError(`HTTP Hatası ${response.status}:\n${rawText}`);
+      return;
     }
 
-    const data = await response.json();
-    
-    // Pass the completed text back to the store
-    if (data.message && data.message.content) {
-      onChunk(data.message.content);
+    try {
+      const data = JSON.parse(rawText);
+      if (data.message && data.message.content) {
+        onSuccess(data.message.content); // Başarılıysa içeriği bas
+      } else {
+        onError(`Beklenmeyen Format:\n${rawText.substring(0, 100)}`);
+      }
+    } catch (e) {
+      onError(`JSON Çözülemedi:\n${rawText.substring(0, 100)}`);
     }
-    } catch (error: any) {
-    console.error('Ollama Fetch Error:', error.message || error);
-    onChunk(`\n[Connection Error]: ${error.message || 'Unknown network failure.'}`);
+
+  } catch (error: any) {
+    onError(`Ağ Hatası:\n${error.message}\nIP adresini ve OLLAMA_HOST=0.0.0.0 ayarını kontrol edin.`);
   }
-
 };
-
