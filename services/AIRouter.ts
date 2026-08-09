@@ -33,13 +33,14 @@ export const generateResponse = async () => {
         replaceLastMessage(`⏳ Yanıt bekleniyor (${formatRemaining(secondsLeft)})`);
 
         if (secondsLeft <= 0) {
+          clearInterval(countdownId);
+          isTimedOut = true;
           const latestMessages = useAIStore.getState().messages;
           const lastMessage = latestMessages[latestMessages.length - 1];
           const stillWaiting =
             lastMessage?.role === 'assistant' &&
             lastMessage.content.startsWith('⏳ Yanıt bekleniyor');
 
-          isTimedOut = true;
           controller.abort();
           replaceLastMessage(
             stillWaiting

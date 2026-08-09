@@ -6,7 +6,8 @@ import {
   TouchableOpacity, 
   Modal, 
   TextInput,
-  FlatList 
+  FlatList,
+  Alert
 } from 'react-native';
 import { useAIStore, Provider } from '../store/useAIStore';
 import { fetchOllamaModels } from '../services/ollama';
@@ -126,7 +127,19 @@ export const ProviderMenu = () => {
                         </Text>
                         <Text style={styles.providerModel}>{item.defaultModel}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => removeProvider(item.id)} style={styles.removeButton}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          Alert.alert('Sağlayıcı silinsin mi?', `${item.name} kalıcı olarak silinecek.`, [
+                            { text: 'Vazgeç', style: 'cancel' },
+                            {
+                              text: 'Sil',
+                              style: 'destructive',
+                              onPress: () => removeProvider(item.id),
+                            },
+                          ])
+                        }
+                        style={styles.removeButton}
+                      >
                         <Text style={styles.removeButtonText}>Sil</Text>
                       </TouchableOpacity>
                     </View>

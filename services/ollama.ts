@@ -122,20 +122,24 @@ export const fetchOllama = async (
 };
 
 export const fetchOllamaModels = async (baseUrl: string): Promise<string[]> => {
-  const cleanedBaseUrl = baseUrl.replace(/\/+$/, '');
-  const response = await fetch(`${cleanedBaseUrl}/api/tags`);
-  const rawText = await response.text();
+  try {
+    const cleanedBaseUrl = baseUrl.replace(/\/+$/, '');
+    const response = await fetch(`${cleanedBaseUrl}/api/tags`);
+    const rawText = await response.text();
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${rawText}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${rawText}`);
+    }
+
+    const data = JSON.parse(rawText);
+    const models = Array.isArray(data.models)
+      ? data.models
+          .map((item: any) => item?.model)
+          .filter((name: unknown): name is string => typeof name === 'string' && name.trim().length > 0)
+      : [];
+
+    return Array.from(new Set<string>(models));
+  } catch (error: any) {
+    throw new Error(`Ollama model listesi alınamadı: ${error.message}`);
   }
-
-  const data = JSON.parse(rawText);
-  const models = Array.isArray(data.models)
-    ? data.models
-        .map((item: any) => item?.model)
-        .filter((name: unknown): name is string => typeof name === 'string' && name.trim().length > 0)
-    : [];
-
-  return [...new Set(models)];
 };
