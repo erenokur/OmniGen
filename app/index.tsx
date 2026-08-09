@@ -32,13 +32,21 @@ export default function ChatScreen() {
   };
 
   const handleResetApp = () => {
-    if (isGenerating) return;
     Alert.alert(
       'Uygulamayı sıfırla',
       'Tüm mesajlar ve sağlayıcı bilgileri silinecek. Devam etmek istiyor musunuz?',
       [
         { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Sıfırla', style: 'destructive', onPress: () => resetAppState() },
+        {
+          text: 'Sıfırla',
+          style: 'destructive',
+          onPress: () => {
+            if (isGenerating) {
+              stopGeneration();
+            }
+            resetAppState();
+          },
+        },
       ]
     );
   };
@@ -57,7 +65,7 @@ export default function ChatScreen() {
                 <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
                   <Text style={styles.clearButtonText}>Temizle</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.resetButton, isGenerating && styles.clearButtonDisabled]} onPress={handleResetApp} disabled={isGenerating}>
+                <TouchableOpacity style={styles.resetButton} onPress={handleResetApp}>
                   <Text style={styles.resetButtonText}>Sıfırla</Text>
                 </TouchableOpacity>
               </View>
