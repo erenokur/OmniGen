@@ -32,6 +32,7 @@ interface AIStore {
   removeStatusMessages: () => void;
   setIsGenerating: (status: boolean) => void;
   clearMessages(): void;
+  resetAppState: () => void;
   setActiveProvider: (id: string) => void;
   addProvider: (provider: Provider) => void;
   removeProvider: (id: string) => void;
@@ -74,6 +75,13 @@ export const useAIStore = create<AIStore>()(
 
       setIsGenerating: (status) => set({ isGenerating: status }),
       clearMessages: () => set({ messages: [] }),
+      resetAppState: () =>
+        set({
+          messages: [],
+          providers: [],
+          activeProviderId: null,
+          isGenerating: false,
+        }),
       setActiveProvider: (id) => set({ activeProviderId: id }),
       addProvider: (provider) => 
         set((state) => ({ providers: [...state.providers, provider], activeProviderId: provider.id })),

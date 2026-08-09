@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, TextInput, TouchableOpacity, FlatList, StyleSheet, Text, 
-  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback 
+  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
@@ -13,7 +13,7 @@ import { createMessageId } from '../utils/messageId';
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const insets = useSafeAreaInsets();
-  const { messages, addMessage, isGenerating, activeProviderId, clearMessages } = useAIStore();
+  const { messages, addMessage, isGenerating, activeProviderId, clearMessages, resetAppState } = useAIStore();
 
   const handleSend = async () => {
     if (!inputText.trim() || isGenerating) return;
@@ -31,6 +31,18 @@ export default function ChatScreen() {
     stopGeneration();
   };
 
+  const handleResetApp = () => {
+    if (isGenerating) return;
+    Alert.alert(
+      'Uygulamayı sıfırla',
+      'Tüm mesajlar ve sağlayıcı bilgileri silinecek. Devam etmek istiyor musunuz?',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Sıfırla', style: 'destructive', onPress: () => resetAppState() },
+      ]
+    );
+  };
+
   return (
     <KeyboardAvoidingView 
       style={styles.container} 
@@ -41,9 +53,14 @@ export default function ChatScreen() {
           <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
             <View style={styles.headerContent}>
               <ProviderMenu />
-              <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
-                <Text style={styles.clearButtonText}>Temizle</Text>
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
+                  <Text style={styles.clearButtonText}>Temizle</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.resetButton, isGenerating && styles.clearButtonDisabled]} onPress={handleResetApp} disabled={isGenerating}>
+                  <Text style={styles.resetButtonText}>Sıfırla</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -77,9 +94,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F2F7' },
   header: { padding: 16, borderBottomWidth: 1, borderColor: '#E5E5EA', backgroundColor: '#FFF' },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   clearButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#FFE5E5', borderRadius: 8 },
   clearButtonDisabled: { opacity: 0.5 },
   clearButtonText: { color: '#D11A2A', fontWeight: '600' },
+  resetButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#FFEFD6', borderRadius: 8 },
+  resetButtonText: { color: '#A75A00', fontWeight: '600' },
   listContent: { paddingVertical: 16 },
   inputWrapper: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', borderTopWidth: 1, borderColor: '#E5E5EA', alignItems: 'flex-end' },
   input: { flex: 1, backgroundColor: '#F2F2F7', borderRadius: 20, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10, minHeight: 40, maxHeight: 120, fontSize: 16 },
