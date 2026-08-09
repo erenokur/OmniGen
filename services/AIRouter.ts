@@ -11,8 +11,7 @@ export const generateResponse = async () => {
   if (!provider || messages.length === 0) return;
 
   const requestMessages = messages.filter((message) => message.kind !== 'status');
-  const hasUserMessage = requestMessages.some((message) => message.role === 'user');
-  if (!hasUserMessage) return;
+  if (requestMessages[requestMessages.length - 1]?.role !== 'user') return;
 
   setIsGenerating(true);
   const MAX_WAIT_MINUTES = 5;
