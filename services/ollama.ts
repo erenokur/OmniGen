@@ -9,6 +9,12 @@ export const fetchOllama = async (
 ): Promise<void> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000);
+  let isCompleted = false;
+  const safeComplete = () => {
+    if (isCompleted) return;
+    isCompleted = true;
+    onComplete();
+  };
 
   try {
     const formattedMessages = messages.map((m) => ({
@@ -38,14 +44,18 @@ export const fetchOllama = async (
 
     if (!response.body) {
       const rawText = await response.text();
-      const data = JSON.parse(rawText);
-      if (data.message?.content) {
-        onChunk(data.message.content);
-        onComplete();
-      } else if (data.error) {
-        onError(data.error);
-      } else {
-        onError(`Beklenmeyen Format:\n${rawText.substring(0, 100)}`);
+      try {
+        const data = JSON.parse(rawText);
+        if (data.message?.content) {
+          onChunk(data.message.content);
+          safeComplete();
+        } else if (data.error) {
+          onError(data.error);
+        } else {
+          onError(`Beklenmeyen Format:\n${rawText.substring(0, 100)}`);
+        }
+      } catch {
+        onError(`JSON Çözülemedi:\n${rawText.substring(0, 100)}`);
       }
       return;
     }
@@ -76,7 +86,7 @@ export const fetchOllama = async (
             onChunk(data.message.content);
           }
           if (data.done) {
-            onComplete();
+            safeComplete();
             return;
           }
         } catch {
@@ -102,7 +112,7 @@ export const fetchOllama = async (
       }
     }
 
-    onComplete();
+    safeComplete();
   } catch (error: any) {
     if (error.name === 'AbortError') {
       onError('İstek zaman aşımına uğradı. Ollama çalışıyor mu ve model yüklü mü kontrol edin.');
