@@ -5,7 +5,7 @@ const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(
 
 export const generateResponse = async () => {
   const store = useAIStore.getState();
-  const { activeProviderId, providers, messages, addMessage, setIsGenerating } = store;
+  const { activeProviderId, providers, messages, addMessage, removeStatusMessages, setIsGenerating } = store;
 
   const provider = providers.find((p) => p.id === activeProviderId);
   if (!provider || messages.length === 0) return;
@@ -35,6 +35,7 @@ export const generateResponse = async () => {
           clearInterval(countdownId);
           isFinished = true;
           controller.abort();
+          removeStatusMessages();
           addMessage({
             id: createMessageId(),
             role: 'assistant',
@@ -55,6 +56,7 @@ export const generateResponse = async () => {
             clearInterval(countdownId);
             if (isFinished) return;
             isFinished = true;
+            removeStatusMessages();
             addMessage({
               id: createMessageId(),
               role: 'assistant',
@@ -65,6 +67,7 @@ export const generateResponse = async () => {
             clearInterval(countdownId);
             if (isFinished) return;
             isFinished = true;
+            removeStatusMessages();
             addMessage({
               id: createMessageId(),
               role: 'assistant',
@@ -79,6 +82,7 @@ export const generateResponse = async () => {
       }
     } else {
       console.warn("Cloud API henüz yazılmadı.");
+      removeStatusMessages();
       addMessage({
         id: createMessageId(),
         role: 'assistant',
@@ -87,6 +91,7 @@ export const generateResponse = async () => {
       });
     }
   } catch (error: any) {
+    removeStatusMessages();
     addMessage({
       id: createMessageId(),
       role: 'assistant',

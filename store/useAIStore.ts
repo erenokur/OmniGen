@@ -29,6 +29,7 @@ interface AIStore {
   addMessage: (message: Message) => void;
   updateLastMessage: (chunk: string) => void;
   replaceLastMessage: (content: string) => void; // Yeni eklendi!
+  removeStatusMessages: () => void;
   setIsGenerating: (status: boolean) => void;
   clearMessages(): void;
   setActiveProvider: (id: string) => void;
@@ -65,6 +66,11 @@ export const useAIStore = create<AIStore>()(
           }
           return { messages: newMessages };
         }),
+
+      removeStatusMessages: () =>
+        set((state) => ({
+          messages: state.messages.filter((message) => message.kind !== 'status'),
+        })),
 
       setIsGenerating: (status) => set({ isGenerating: status }),
       clearMessages: () => set({ messages: [] }),
