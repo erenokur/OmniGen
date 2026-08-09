@@ -8,10 +8,16 @@ export const generateResponse = async () => {
   const { activeProviderId, providers, messages, addMessage, removeStatusMessages, setIsGenerating } = store;
 
   const provider = providers.find((p) => p.id === activeProviderId);
-  if (!provider || messages.length === 0) return;
+  if (!provider || messages.length === 0) {
+    removeStatusMessages();
+    return;
+  }
 
   const requestMessages = messages.filter((message) => message.kind !== 'status');
-  if (requestMessages[requestMessages.length - 1]?.role !== 'user') return;
+  if (requestMessages[requestMessages.length - 1]?.role !== 'user') {
+    removeStatusMessages();
+    return;
+  }
 
   setIsGenerating(true);
   const MAX_WAIT_MINUTES = 5;
@@ -40,7 +46,6 @@ export const generateResponse = async () => {
             id: createMessageId(),
             role: 'assistant',
             content: '❌ 5 dakika doldu. Modelden yanıt alınamadı.',
-            kind: 'status',
           });
         }
       }, 60_000);
@@ -72,7 +77,6 @@ export const generateResponse = async () => {
               id: createMessageId(),
               role: 'assistant',
               content: `❌ ${errorText}`,
-              kind: 'status',
             });
           },
           controller.signal
@@ -87,7 +91,6 @@ export const generateResponse = async () => {
         id: createMessageId(),
         role: 'assistant',
         content: '❌ Cloud API henüz yazılmadı.',
-        kind: 'status',
       });
     }
   } catch (error: any) {
@@ -96,7 +99,6 @@ export const generateResponse = async () => {
       id: createMessageId(),
       role: 'assistant',
       content: `❌ Sistem Hatası: ${error.message}`,
-      kind: 'status',
     });
   } finally {
     setIsGenerating(false);
