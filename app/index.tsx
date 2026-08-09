@@ -8,8 +8,7 @@ import { useAIStore } from '../store/useAIStore';
 import { generateResponse, stopGeneration } from '../services/AIRouter';
 import { ChatBubble } from '../components/ChatBubble';
 import { ProviderMenu } from '../components/ProviderMenu';
-
-const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+import { createMessageId } from '../utils/messageId';
 
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
@@ -65,7 +64,7 @@ export default function ChatScreen() {
               maxLength={1000}
             />
             <TouchableOpacity style={styles.sendButton} onPress={isGenerating ? handleStop : handleSend}>
-              {isGenerating ? <Text style={styles.sendButtonText}>Stop</Text> : <Text style={styles.sendButtonText}>Gönder</Text>}
+              {isGenerating ? <Text style={styles.sendButtonText}>Durdur</Text> : <Text style={styles.sendButtonText}>Gönder</Text>}
             </TouchableOpacity>
           </View>
         </View>

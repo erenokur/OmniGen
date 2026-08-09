@@ -1,7 +1,6 @@
 import { useAIStore } from '../store/useAIStore';
 import { fetchOllama } from './ollama';
-
-const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+import { createMessageId } from '../utils/messageId';
 let activeController: AbortController | null = null;
 let isStoppedByUser = false;
 
@@ -12,6 +11,8 @@ export const stopGeneration = () => {
 };
 
 export const generateResponse = async () => {
+  if (activeController) return;
+
   const store = useAIStore.getState();
   const { activeProviderId, providers, messages, addMessage, removeStatusMessages, setIsGenerating } = store;
 
@@ -73,6 +74,7 @@ export const generateResponse = async () => {
                 id: createMessageId(),
                 role: 'assistant',
                 content: '✅ Yanıt geldi, yazılıyor...',
+                kind: 'status',
               });
               addMessage({
                 id: createMessageId(),
@@ -94,7 +96,9 @@ export const generateResponse = async () => {
                 role: 'assistant',
                 content: '⚠️ Model yanıtı boş döndü.',
               });
+              return;
             }
+            removeStatusMessages();
           },
           (errorText) => {
             clearInterval(countdownId);
