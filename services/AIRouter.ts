@@ -41,12 +41,12 @@ export const generateResponse = async () => {
             lastMessage?.role === 'assistant' &&
             lastMessage.content.startsWith('⏳ Yanıt bekleniyor');
 
+          controller.abort();
           replaceLastMessage(
             stillWaiting
               ? '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
               : lastMessage?.content || '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
           );
-          controller.abort();
         }
       }, 1000);
       try {
