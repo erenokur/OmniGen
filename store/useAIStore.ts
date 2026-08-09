@@ -8,6 +8,7 @@ export interface Message {
   id: string;
   role: Role;
   content: string;
+  kind?: 'status';
 }
 
 export interface Provider {

@@ -1,6 +1,8 @@
 import { useAIStore } from '../store/useAIStore';
 import { fetchOllama } from './ollama';
 
+const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export const generateResponse = async () => {
   const store = useAIStore.getState();
   const { activeProviderId, providers, messages, addMessage, setIsGenerating } = store;
@@ -8,15 +10,7 @@ export const generateResponse = async () => {
   const provider = providers.find((p) => p.id === activeProviderId);
   if (!provider || messages.length === 0) return;
 
-  const requestMessages = messages.filter(
-    (message) =>
-      !(
-        message.role === 'assistant' &&
-        (message.content.startsWith('⏳') ||
-          message.content.startsWith('❌') ||
-          message.content.startsWith('⚠️ Model yanıtı boş döndü.'))
-      )
-  );
+  const requestMessages = messages.filter((message) => message.kind !== 'status');
   const hasUserMessage = requestMessages.some((message) => message.role === 'user');
   if (!hasUserMessage) return;
 
@@ -33,18 +27,20 @@ export const generateResponse = async () => {
         if (isFinished) return;
         waitingMinute += 1;
         addMessage({
-          id: Date.now().toString(),
+          id: createMessageId(),
           role: 'assistant',
           content: `⏳ Yanıt bekleniyor (${waitingMinute}/${MAX_WAIT_MINUTES})`,
+          kind: 'status',
         });
         if (waitingMinute >= MAX_WAIT_MINUTES) {
           clearInterval(countdownId);
           isFinished = true;
           controller.abort();
           addMessage({
-            id: (Date.now() + 1).toString(),
+            id: createMessageId(),
             role: 'assistant',
             content: '❌ 5 dakika doldu. Modelden yanıt alınamadı.',
+            kind: 'status',
           });
         }
       }, 60_000);
@@ -61,7 +57,7 @@ export const generateResponse = async () => {
             if (isFinished) return;
             isFinished = true;
             addMessage({
-              id: Date.now().toString(),
+              id: createMessageId(),
               role: 'assistant',
               content: responseBuffer.trim() ? responseBuffer : '⚠️ Model yanıtı boş döndü.',
             });
@@ -71,9 +67,10 @@ export const generateResponse = async () => {
             if (isFinished) return;
             isFinished = true;
             addMessage({
-              id: Date.now().toString(),
+              id: createMessageId(),
               role: 'assistant',
               content: `❌ ${errorText}`,
+              kind: 'status',
             });
           },
           controller.signal
@@ -84,16 +81,18 @@ export const generateResponse = async () => {
     } else {
       console.warn("Cloud API henüz yazılmadı.");
       addMessage({
-        id: Date.now().toString(),
+        id: createMessageId(),
         role: 'assistant',
         content: '❌ Cloud API henüz yazılmadı.',
+        kind: 'status',
       });
     }
   } catch (error: any) {
     addMessage({
-      id: Date.now().toString(),
+      id: createMessageId(),
       role: 'assistant',
       content: `❌ Sistem Hatası: ${error.message}`,
+      kind: 'status',
     });
   } finally {
     setIsGenerating(false);

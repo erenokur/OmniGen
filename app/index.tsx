@@ -9,6 +9,8 @@ import { generateResponse } from '../services/AIRouter';
 import { ChatBubble } from '../components/ChatBubble';
 import { ProviderMenu } from '../components/ProviderMenu';
 
+const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const insets = useSafeAreaInsets();
@@ -17,11 +19,11 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!inputText.trim() || isGenerating) return;
 
-    addMessage({ id: Date.now().toString(), role: 'user', content: inputText.trim() });
+    addMessage({ id: createMessageId(), role: 'user', content: inputText.trim() });
     setInputText('');
     Keyboard.dismiss();
 
-    addMessage({ id: (Date.now() + 1).toString(), role: 'assistant', content: '⏳ Bekleyin...' });
+    addMessage({ id: createMessageId(), role: 'assistant', content: '⏳ Bekleyin...', kind: 'status' });
     await generateResponse();
   };
 
