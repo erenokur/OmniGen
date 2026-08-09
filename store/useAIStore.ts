@@ -29,7 +29,7 @@ interface AIStore {
   updateLastMessage: (chunk: string) => void;
   replaceLastMessage: (content: string) => void; // Yeni eklendi!
   setIsGenerating: (status: boolean) => void;
-  clearMessages: () => void;
+  clearMessages(): void;
   setActiveProvider: (id: string) => void;
   addProvider: (provider: Provider) => void;
 }
