@@ -35,7 +35,7 @@ export default function ChatScreen() {
           <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
             <View style={styles.headerContent}>
               <ProviderMenu />
-              <TouchableOpacity style={styles.clearButton} onPress={clearMessages}>
+              <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
                 <Text style={styles.clearButtonText}>Temizle</Text>
               </TouchableOpacity>
             </View>
@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
   header: { padding: 16, borderBottomWidth: 1, borderColor: '#E5E5EA', backgroundColor: '#FFF' },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   clearButton: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#FFE5E5', borderRadius: 8 },
+  clearButtonDisabled: { opacity: 0.5 },
   clearButtonText: { color: '#D11A2A', fontWeight: '600' },
   listContent: { paddingVertical: 16 },
   inputWrapper: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', borderTopWidth: 1, borderColor: '#E5E5EA', alignItems: 'flex-end' },

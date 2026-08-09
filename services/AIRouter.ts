@@ -34,7 +34,6 @@ export const generateResponse = async () => {
 
         if (secondsLeft <= 0) {
           clearInterval(countdownId);
-          isTimedOut = true;
           const latestMessages = useAIStore.getState().messages;
           const lastMessage = latestMessages[latestMessages.length - 1];
           const stillWaiting =
@@ -42,6 +41,7 @@ export const generateResponse = async () => {
             lastMessage.content.startsWith('⏳ Yanıt bekleniyor');
 
           controller.abort();
+          isTimedOut = true;
           replaceLastMessage(
             stillWaiting
               ? '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
