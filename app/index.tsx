@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { 
   View, TextInput, TouchableOpacity, FlatList, StyleSheet, Text, 
-  ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback 
+  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback 
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
-import { generateResponse } from '../services/AIRouter';
+import { generateResponse, stopGeneration } from '../services/AIRouter';
 import { ChatBubble } from '../components/ChatBubble';
 import { ProviderMenu } from '../components/ProviderMenu';
 
@@ -25,6 +25,11 @@ export default function ChatScreen() {
 
     addMessage({ id: createMessageId(), role: 'assistant', content: '⏳ Bekleyin...', kind: 'status' });
     await generateResponse();
+  };
+
+  const handleStop = () => {
+    if (!isGenerating) return;
+    stopGeneration();
   };
 
   return (
@@ -59,8 +64,8 @@ export default function ChatScreen() {
               multiline
               maxLength={1000}
             />
-            <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              {isGenerating ? <ActivityIndicator color="#FFF" /> : <Text style={styles.sendButtonText}>Gönder</Text>}
+            <TouchableOpacity style={styles.sendButton} onPress={isGenerating ? handleStop : handleSend}>
+              {isGenerating ? <Text style={styles.sendButtonText}>Stop</Text> : <Text style={styles.sendButtonText}>Gönder</Text>}
             </TouchableOpacity>
           </View>
         </View>

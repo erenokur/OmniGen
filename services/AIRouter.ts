@@ -2,6 +2,14 @@ import { useAIStore } from '../store/useAIStore';
 import { fetchOllama } from './ollama';
 
 const createMessageId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+let activeController: AbortController | null = null;
+let isStoppedByUser = false;
+
+export const stopGeneration = () => {
+  if (!activeController) return;
+  isStoppedByUser = true;
+  activeController.abort();
+};
 
 export const generateResponse = async () => {
   const store = useAIStore.getState();
@@ -23,11 +31,13 @@ export const generateResponse = async () => {
   const MAX_WAIT_MINUTES = 5;
   let waitingMinute = 0;
   let isFinished = false;
-  let responseBuffer = '';
+  let hasResponseStarted = false;
+  isStoppedByUser = false;
 
   try {
     if (provider.type === 'ollama') {
       const controller = new AbortController();
+      activeController = controller;
       const countdownId = setInterval(() => {
         if (isFinished) return;
         waitingMinute += 1;
@@ -55,18 +65,36 @@ export const generateResponse = async () => {
           provider,
           (text) => {
             if (isFinished) return;
-            responseBuffer += text;
+            if (!hasResponseStarted) {
+              hasResponseStarted = true;
+              clearInterval(countdownId);
+              removeStatusMessages();
+              addMessage({
+                id: createMessageId(),
+                role: 'assistant',
+                content: '✅ Yanıt geldi, yazılıyor...',
+              });
+              addMessage({
+                id: createMessageId(),
+                role: 'assistant',
+                content: text,
+              });
+              return;
+            }
+            useAIStore.getState().updateLastMessage(text);
           },
           () => {
             clearInterval(countdownId);
             if (isFinished) return;
             isFinished = true;
-            removeStatusMessages();
-            addMessage({
-              id: createMessageId(),
-              role: 'assistant',
-              content: responseBuffer.trim() ? responseBuffer : '⚠️ Model yanıtı boş döndü.',
-            });
+            if (!hasResponseStarted) {
+              removeStatusMessages();
+              addMessage({
+                id: createMessageId(),
+                role: 'assistant',
+                content: '⚠️ Model yanıtı boş döndü.',
+              });
+            }
           },
           (errorText) => {
             clearInterval(countdownId);
@@ -76,13 +104,14 @@ export const generateResponse = async () => {
             addMessage({
               id: createMessageId(),
               role: 'assistant',
-              content: `❌ ${errorText}`,
+              content: isStoppedByUser ? '⏹️ Yanıt durduruldu.' : `❌ ${errorText}`,
             });
           },
           controller.signal
         );
       } finally {
         clearInterval(countdownId);
+        activeController = null;
       }
     } else {
       console.warn("Cloud API henüz yazılmadı.");
@@ -101,6 +130,7 @@ export const generateResponse = async () => {
       content: `❌ Sistem Hatası: ${error.message}`,
     });
   } finally {
+    activeController = null;
     setIsGenerating(false);
   }
 };
