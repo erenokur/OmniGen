@@ -32,6 +32,7 @@ interface AIStore {
   clearMessages(): void;
   setActiveProvider: (id: string) => void;
   addProvider: (provider: Provider) => void;
+  removeProvider: (id: string) => void;
 }
 
 export const useAIStore = create<AIStore>()(
@@ -69,6 +70,15 @@ export const useAIStore = create<AIStore>()(
       setActiveProvider: (id) => set({ activeProviderId: id }),
       addProvider: (provider) => 
         set((state) => ({ providers: [...state.providers, provider], activeProviderId: provider.id })),
+      removeProvider: (id) =>
+        set((state) => {
+          const updatedProviders = state.providers.filter((provider) => provider.id !== id);
+          const isActiveRemoved = state.activeProviderId === id;
+          return {
+            providers: updatedProviders,
+            activeProviderId: isActiveRemoved ? (updatedProviders[0]?.id ?? null) : state.activeProviderId,
+          };
+        }),
     }),
     {
       name: 'ai-app-storage',

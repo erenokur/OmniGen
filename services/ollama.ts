@@ -5,10 +5,9 @@ export const fetchOllama = async (
   provider: Provider,
   onChunk: (text: string) => void,
   onComplete: () => void,
-  onError: (text: string) => void
+  onError: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<void> => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
   let isCompleted = false;
   const safeComplete = () => {
     if (isCompleted) return;
@@ -33,7 +32,7 @@ export const fetchOllama = async (
         messages: formattedMessages,
         stream: true,
       }),
-      signal: controller.signal,
+      signal,
     });
 
     if (!response.ok) {
@@ -115,11 +114,28 @@ export const fetchOllama = async (
     safeComplete();
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      onError('İstek zaman aşımına uğradı. Ollama çalışıyor mu ve model yüklü mü kontrol edin.');
+      onError('İstek iptal edildi veya zaman aşımına uğradı.');
       return;
     }
     onError(`Ağ Hatası:\n${error.message}\nBase URL'i ve Ollama servis durumunu kontrol edin.`);
-  } finally {
-    clearTimeout(timeoutId);
   }
+};
+
+export const fetchOllamaModels = async (baseUrl: string): Promise<string[]> => {
+  const cleanedBaseUrl = baseUrl.replace(/\/+$/, '');
+  const response = await fetch(`${cleanedBaseUrl}/api/tags`);
+  const rawText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${rawText}`);
+  }
+
+  const data = JSON.parse(rawText);
+  const models = Array.isArray(data.models)
+    ? data.models
+        .map((item: any) => item?.model)
+        .filter((name: unknown): name is string => typeof name === 'string' && name.trim().length > 0)
+    : [];
+
+  return [...new Set(models)];
 };
