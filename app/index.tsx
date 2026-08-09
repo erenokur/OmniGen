@@ -21,7 +21,7 @@ export default function ChatScreen() {
     setInputText('');
     Keyboard.dismiss();
 
-    addMessage({ id: (Date.now() + 1).toString(), role: 'assistant', content: '⏳ Bağlanıyor...' });
+    addMessage({ id: (Date.now() + 1).toString(), role: 'assistant', content: '⏳ Bekleyin...' });
     await generateResponse();
   };
 

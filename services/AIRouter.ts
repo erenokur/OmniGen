@@ -3,76 +3,78 @@ import { fetchOllama } from './ollama';
 
 export const generateResponse = async () => {
   const store = useAIStore.getState();
-  const { activeProviderId, providers, messages, updateLastMessage, replaceLastMessage, setIsGenerating } = store;
+  const { activeProviderId, providers, messages, addMessage, setIsGenerating } = store;
 
   const provider = providers.find((p) => p.id === activeProviderId);
   if (!provider || messages.length === 0) return;
-  
-  if (messages[messages.length - 1].role !== 'user') return;
+
+  const requestMessages = messages.filter(
+    (message) =>
+      !(
+        message.role === 'assistant' &&
+        (message.content.startsWith('⏳') ||
+          message.content.startsWith('❌') ||
+          message.content.startsWith('⚠️ Model yanıtı boş döndü.'))
+      )
+  );
+  const hasUserMessage = requestMessages.some((message) => message.role === 'user');
+  if (!hasUserMessage) return;
 
   setIsGenerating(true);
-  const MAX_WAIT_SECONDS = 5 * 60;
-  let hasStarted = false;
-  let isTimedOut = false;
-  const formatRemaining = (remainingSeconds: number) => {
-    const safeSeconds = Math.max(remainingSeconds, 0);
-    const minutes = Math.floor(safeSeconds / 60);
-    const seconds = safeSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  };
-  replaceLastMessage(`⏳ Yanıt bekleniyor (${formatRemaining(MAX_WAIT_SECONDS)})`);
+  const MAX_WAIT_MINUTES = 5;
+  let waitingMinute = 0;
+  let isFinished = false;
+  let responseBuffer = '';
 
   try {
     if (provider.type === 'ollama') {
       const controller = new AbortController();
-      let secondsLeft = MAX_WAIT_SECONDS;
       const countdownId = setInterval(() => {
-        if (hasStarted || isTimedOut) return;
-
-        secondsLeft -= 1;
-        replaceLastMessage(`⏳ Yanıt bekleniyor (${formatRemaining(secondsLeft)})`);
-
-        if (secondsLeft <= 0) {
+        if (isFinished) return;
+        waitingMinute += 1;
+        addMessage({
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `⏳ Yanıt bekleniyor (${waitingMinute}/${MAX_WAIT_MINUTES})`,
+        });
+        if (waitingMinute >= MAX_WAIT_MINUTES) {
           clearInterval(countdownId);
-          isTimedOut = true;
-          const latestMessages = useAIStore.getState().messages;
-          const lastMessage = latestMessages[latestMessages.length - 1];
-          const stillWaiting =
-            lastMessage?.role === 'assistant' &&
-            lastMessage.content.startsWith('⏳ Yanıt bekleniyor');
-
+          isFinished = true;
           controller.abort();
-          replaceLastMessage(
-            stillWaiting
-              ? '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
-              : lastMessage?.content || '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
-          );
+          addMessage({
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
+            content: '❌ 5 dakika doldu. Modelden yanıt alınamadı.',
+          });
         }
-      }, 1000);
+      }, 60_000);
       try {
         await fetchOllama(
-          messages,
+          requestMessages,
           provider,
           (text) => {
-            if (isTimedOut) return;
-            if (!hasStarted) {
-              replaceLastMessage(text);
-              hasStarted = true;
-              return;
-            }
-            updateLastMessage(text);
+            if (isFinished) return;
+            responseBuffer += text;
           },
           () => {
             clearInterval(countdownId);
-            if (isTimedOut) return;
-            if (!hasStarted) {
-              replaceLastMessage('⚠️ Model yanıtı boş döndü.');
-            }
+            if (isFinished) return;
+            isFinished = true;
+            addMessage({
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: responseBuffer.trim() ? responseBuffer : '⚠️ Model yanıtı boş döndü.',
+            });
           },
           (errorText) => {
             clearInterval(countdownId);
-            if (isTimedOut) return;
-            replaceLastMessage(`❌ ${errorText}`);
+            if (isFinished) return;
+            isFinished = true;
+            addMessage({
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `❌ ${errorText}`,
+            });
           },
           controller.signal
         );
@@ -81,10 +83,18 @@ export const generateResponse = async () => {
       }
     } else {
       console.warn("Cloud API henüz yazılmadı.");
-      replaceLastMessage('❌ Cloud API henüz yazılmadı.');
+      addMessage({
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: '❌ Cloud API henüz yazılmadı.',
+      });
     }
   } catch (error: any) {
-    replaceLastMessage(`❌ Sistem Hatası: ${error.message}`);
+    addMessage({
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `❌ Sistem Hatası: ${error.message}`,
+    });
   } finally {
     setIsGenerating(false);
   }
