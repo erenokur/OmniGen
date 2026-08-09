@@ -45,7 +45,7 @@ export const generateResponse = async () => {
           addMessage({
             id: createMessageId(),
             role: 'assistant',
-            content: '❌ 5 dakika doldu. Modelden yanıt alınamadı.',
+            content: `❌ ${MAX_WAIT_MINUTES} dakika doldu. Modelden yanıt alınamadı.`,
           });
         }
       }, 60_000);
