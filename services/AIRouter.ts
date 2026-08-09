@@ -34,49 +34,51 @@ export const generateResponse = async () => {
 
         if (secondsLeft <= 0) {
           clearInterval(countdownId);
+          isTimedOut = true;
           const latestMessages = useAIStore.getState().messages;
           const lastMessage = latestMessages[latestMessages.length - 1];
           const stillWaiting =
             lastMessage?.role === 'assistant' &&
             lastMessage.content.startsWith('⏳ Yanıt bekleniyor');
 
-          controller.abort();
-          isTimedOut = true;
           replaceLastMessage(
             stillWaiting
               ? '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
               : lastMessage?.content || '❌ 5 dakika doldu. Modelden yanıt alınamadı.'
           );
+          controller.abort();
         }
       }, 1000);
-
-      await fetchOllama(
-        messages,
-        provider,
-        (text) => {
-          if (isTimedOut) return;
-          if (!hasStarted) {
-            replaceLastMessage(text);
-            hasStarted = true;
-            return;
-          }
-          updateLastMessage(text);
-        },
-        () => {
-          clearInterval(countdownId);
-          if (isTimedOut) return;
-          if (!hasStarted) {
-            replaceLastMessage('⚠️ Model yanıtı boş döndü.');
-          }
-        },
-        (errorText) => {
-          clearInterval(countdownId);
-          if (isTimedOut) return;
-          replaceLastMessage(`❌ ${errorText}`);
-        },
-        controller.signal
-      );
-      clearInterval(countdownId);
+      try {
+        await fetchOllama(
+          messages,
+          provider,
+          (text) => {
+            if (isTimedOut) return;
+            if (!hasStarted) {
+              replaceLastMessage(text);
+              hasStarted = true;
+              return;
+            }
+            updateLastMessage(text);
+          },
+          () => {
+            clearInterval(countdownId);
+            if (isTimedOut) return;
+            if (!hasStarted) {
+              replaceLastMessage('⚠️ Model yanıtı boş döndü.');
+            }
+          },
+          (errorText) => {
+            clearInterval(countdownId);
+            if (isTimedOut) return;
+            replaceLastMessage(`❌ ${errorText}`);
+          },
+          controller.signal
+        );
+      } finally {
+        clearInterval(countdownId);
+      }
     } else {
       console.warn("Cloud API henüz yazılmadı.");
       replaceLastMessage('❌ Cloud API henüz yazılmadı.');
