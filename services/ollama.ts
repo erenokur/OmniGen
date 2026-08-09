@@ -3,16 +3,21 @@ import { Message, Provider } from '../store/useAIStore';
 export const fetchOllama = async (
   messages: Message[],
   provider: Provider,
-  onSuccess: (text: string) => void,
+  onChunk: (text: string) => void,
+  onComplete: () => void,
   onError: (text: string) => void
 ): Promise<void> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
+
   try {
     const formattedMessages = messages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
 
-    const response = await fetch(`${provider.baseUrl}/api/chat`, {
+    const baseUrl = provider.baseUrl.replace(/\/+$/, '');
+    const response = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -20,30 +25,91 @@ export const fetchOllama = async (
       body: JSON.stringify({
         model: provider.defaultModel,
         messages: formattedMessages,
-        stream: false,
+        stream: true,
       }),
+      signal: controller.signal,
     });
 
-    // Parse etmeden önce veriyi düz metin olarak alıyoruz
-    const rawText = await response.text();
-
     if (!response.ok) {
+      const rawText = await response.text();
       onError(`HTTP Hatası ${response.status}:\n${rawText}`);
       return;
     }
 
-    try {
+    if (!response.body) {
+      const rawText = await response.text();
       const data = JSON.parse(rawText);
-      if (data.message && data.message.content) {
-        onSuccess(data.message.content); // Başarılıysa içeriği bas
+      if (data.message?.content) {
+        onChunk(data.message.content);
+        onComplete();
+      } else if (data.error) {
+        onError(data.error);
       } else {
         onError(`Beklenmeyen Format:\n${rawText.substring(0, 100)}`);
       }
-    } catch (e) {
-      onError(`JSON Çözülemedi:\n${rawText.substring(0, 100)}`);
+      return;
     }
 
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          const data = JSON.parse(trimmed);
+          if (data.error) {
+            onError(data.error);
+            return;
+          }
+          if (data.message?.content) {
+            onChunk(data.message.content);
+          }
+          if (data.done) {
+            onComplete();
+            return;
+          }
+        } catch {
+          onError(`JSON Çözülemedi:\n${trimmed.substring(0, 100)}`);
+          return;
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      try {
+        const data = JSON.parse(buffer.trim());
+        if (data.error) {
+          onError(data.error);
+          return;
+        }
+        if (data.message?.content) {
+          onChunk(data.message.content);
+        }
+      } catch {
+        onError(`JSON Çözülemedi:\n${buffer.trim().substring(0, 100)}`);
+        return;
+      }
+    }
+
+    onComplete();
   } catch (error: any) {
-    onError(`Ağ Hatası:\n${error.message}\nIP adresini ve OLLAMA_HOST=0.0.0.0 ayarını kontrol edin.`);
+    if (error.name === 'AbortError') {
+      onError('İstek zaman aşımına uğradı. Ollama çalışıyor mu ve model yüklü mü kontrol edin.');
+      return;
+    }
+    onError(`Ağ Hatası:\n${error.message}\nBase URL'i ve Ollama servis durumunu kontrol edin.`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 };

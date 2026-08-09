@@ -31,7 +31,7 @@ export const ProviderMenu = () => {
       type: newType,
       baseUrl: newUrl,
       apiKey: newKey, // In a production app, save this to expo-secure-store!
-      defaultModel: newType === 'openai' ? 'gpt-4o' : 'llama3'
+      defaultModel: newType === 'openai' ? 'gpt-4o' : 'qwen2.5:3b'
     };
     
     addProvider(newProvider);
@@ -127,7 +127,7 @@ export const ProviderMenu = () => {
                     style={[styles.typeButton, newType === 'ollama' && styles.typeActive]}
                     onPress={() => {
                       setNewType('ollama');
-                      setNewUrl('http://192.168.1.X:11434'); // Example local IP
+                      setNewUrl('http://127.0.0.1:11434');
                     }}
                   >
                     <Text>Ollama</Text>
@@ -193,4 +193,3 @@ const styles = StyleSheet.create({
   cancelBtn: { padding: 12 },
   saveBtn: { padding: 12, backgroundColor: '#007AFF', borderRadius: 8 }
 });
-
