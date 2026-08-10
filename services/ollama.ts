@@ -80,6 +80,8 @@ export const fetchOllama = async (
   signal?: AbortSignal
 ): Promise<void> => {
   let isCompleted = false;
+  const DEFAULT_SYSTEM_PROMPT =
+    'Yanıtlarını yalnızca Türkçe ver. Başka dil veya alfabe kullanma.';
   const safeComplete = () => {
     if (isCompleted) return;
     isCompleted = true;
@@ -91,6 +93,10 @@ export const fetchOllama = async (
       role: m.role,
       content: m.content,
     }));
+    const hasSystemMessage = formattedMessages.some((message) => message.role === 'system');
+    const requestMessages = hasSystemMessage
+      ? formattedMessages
+      : [{ role: 'system' as const, content: DEFAULT_SYSTEM_PROMPT }, ...formattedMessages];
 
     const baseUrl = provider.baseUrl.replace(/\/+$/, '');
     const response = await fetch(`${baseUrl}/api/chat`, {
@@ -100,7 +106,7 @@ export const fetchOllama = async (
       },
       body: JSON.stringify({
         model: provider.defaultModel,
-        messages: formattedMessages,
+        messages: requestMessages,
         stream: true,
       }),
       signal,
