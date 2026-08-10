@@ -110,9 +110,7 @@ export const fetchOllama = async (
     if (buffer.trim()) {
       const data = parseStreamLine(buffer);
       if (!data) {
-        if (buffer.trim()) {
-          onChunk(buffer.trim());
-        }
+        onChunk(buffer.trim());
       } else if (data.error) {
         onError(data.error);
         return;

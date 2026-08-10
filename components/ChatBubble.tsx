@@ -75,13 +75,15 @@ export const ChatBubble = ({ message }: ChatBubbleProps) => {
               </TouchableOpacity>
             </View>
           </>
-        ) : (
+        ) : canEdit ? (
           <TouchableOpacity
-            activeOpacity={canEdit ? 0.7 : 1}
-            onPress={canEdit ? () => setIsEditing(true) : undefined}
+            activeOpacity={0.7}
+            onPress={() => setIsEditing(true)}
           >
             <Text style={[styles.text, isUser ? styles.userText : styles.aiText]}>{displayContent}</Text>
           </TouchableOpacity>
+        ) : (
+          <Text style={[styles.text, isUser ? styles.userText : styles.aiText]}>{displayContent}</Text>
         )}
         <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.aiTimestamp]}>{formattedDate}</Text>
       </View>
