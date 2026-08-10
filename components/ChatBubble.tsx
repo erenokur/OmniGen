@@ -79,6 +79,9 @@ export const ChatBubble = ({ message }: ChatBubbleProps) => {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setIsEditing(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Mesajı düzenle"
+            accessibilityHint="Mesaj metnini düzenlemek için çift dokunun"
           >
             <Text style={[styles.text, isUser ? styles.userText : styles.aiText]}>{displayContent}</Text>
           </TouchableOpacity>
