@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { Message } from '../store/useAIStore';
-import { useAIStore } from '../store/useAIStore';
+import { Message, useAIStore } from '../store/useAIStore';
 
 interface ChatBubbleProps {
   message: Message;
