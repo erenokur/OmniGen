@@ -42,6 +42,35 @@ const extractTextContent = (payload: any): string | null => {
   return null;
 };
 
+const extractTextFromNdjsonBody = (rawText: string) => {
+  const lines = rawText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  let done = false;
+  const chunks: string[] = [];
+
+  for (const line of lines) {
+    const parsed = parseStreamLine(line);
+    if (!parsed) continue;
+    if (parsed.error) {
+      return { error: String(parsed.error), text: '', done: false };
+    }
+
+    const chunkText = extractTextContent(parsed);
+    if (chunkText) {
+      chunks.push(chunkText);
+    }
+
+    if (parsed.done) {
+      done = true;
+    }
+  }
+
+  return { error: null as string | null, text: chunks.join(''), done };
+};
+
 export const fetchOllama = async (
   messages: Message[],
   provider: Provider,
@@ -85,14 +114,13 @@ export const fetchOllama = async (
 
     if (!response.body) {
       const rawText = await response.text();
-      const parsed = parseStreamLine(rawText);
-      if (parsed?.error) {
-        onError(parsed.error);
+      const extracted = extractTextFromNdjsonBody(rawText);
+      if (extracted.error) {
+        onError(extracted.error);
         return;
       }
-      const parsedText = extractTextContent(parsed);
-      if (parsedText) {
-        onChunk(parsedText);
+      if (extracted.text) {
+        onChunk(extracted.text);
         safeComplete();
         return;
       }
