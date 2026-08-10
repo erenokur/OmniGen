@@ -8,6 +8,8 @@ export interface Message {
   id: string;
   role: Role;
   content: string;
+  kind?: 'status';
+  createdAt?: number;
 }
 
 export interface Provider {
@@ -26,12 +28,16 @@ interface AIStore {
   isGenerating: boolean;
   
   addMessage: (message: Message) => void;
+  updateMessageContent: (id: string, content: string) => void;
   updateLastMessage: (chunk: string) => void;
   replaceLastMessage: (content: string) => void; // Yeni eklendi!
+  removeStatusMessages: () => void;
   setIsGenerating: (status: boolean) => void;
-  clearMessages: () => set({ messages: [] }),
+  clearMessages(): void;
+  resetAppState: () => void;
   setActiveProvider: (id: string) => void;
   addProvider: (provider: Provider) => void;
+  removeProvider: (id: string) => void;
 }
 
 export const useAIStore = create<AIStore>()(
@@ -43,7 +49,22 @@ export const useAIStore = create<AIStore>()(
       isGenerating: false,
 
       addMessage: (message) => 
-        set((state) => ({ messages: [...state.messages, message] })),
+        set((state) => ({
+          messages: [
+            ...state.messages,
+            {
+              ...message,
+              createdAt: message.createdAt ?? Date.now(),
+            },
+          ],
+        })),
+
+      updateMessageContent: (id, content) =>
+        set((state) => ({
+          messages: state.messages.map((message) =>
+            message.id === id ? { ...message, content } : message
+          ),
+        })),
         
       updateLastMessage: (chunk) =>
         set((state) => {
@@ -64,11 +85,32 @@ export const useAIStore = create<AIStore>()(
           return { messages: newMessages };
         }),
 
+      removeStatusMessages: () =>
+        set((state) => ({
+          messages: state.messages.filter((message) => message.kind !== 'status'),
+        })),
+
       setIsGenerating: (status) => set({ isGenerating: status }),
       clearMessages: () => set({ messages: [] }),
+      resetAppState: () =>
+        set({
+          messages: [],
+          providers: [],
+          activeProviderId: null,
+          isGenerating: false,
+        }),
       setActiveProvider: (id) => set({ activeProviderId: id }),
       addProvider: (provider) => 
         set((state) => ({ providers: [...state.providers, provider], activeProviderId: provider.id })),
+      removeProvider: (id) =>
+        set((state) => {
+          const updatedProviders = state.providers.filter((provider) => provider.id !== id);
+          const isActiveRemoved = state.activeProviderId === id;
+          return {
+            providers: updatedProviders,
+            activeProviderId: isActiveRemoved ? (updatedProviders[0]?.id ?? null) : state.activeProviderId,
+          };
+        }),
     }),
     {
       name: 'ai-app-storage',
