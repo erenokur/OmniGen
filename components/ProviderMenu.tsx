@@ -83,175 +83,177 @@ export const ProviderMenu = () => {
       </TouchableOpacity>
 
       {/* The Settings Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>AI Providers</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            {!isAdding ? (
-              // List Existing Providers
-              <>
-                <FlatList
-                  data={providers}
-                  keyExtractor={item => item.id}
-                  renderItem={({ item }) => (
-                    <View
-                      style={[
-                        styles.providerItem, 
-                        activeProviderId === item.id && styles.providerItemActive
-                      ]}
-                    >
-                      <TouchableOpacity
-                        style={styles.providerSelectArea}
-                        onPress={() => {
-                          setActiveProvider(item.id);
-                          setModalVisible(false);
-                        }}
-                      >
-                        <Text style={[
-                          styles.providerName,
-                          activeProviderId === item.id && styles.providerNameActive
-                        ]}>
-                          {item.name} ({item.type})
-                        </Text>
-                        <Text style={styles.providerModel}>{item.defaultModel}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() =>
-                          Alert.alert('Sağlayıcı silinsin mi?', `${item.name} kalıcı olarak silinecek.`, [
-                            { text: 'Vazgeç', style: 'cancel' },
-                            {
-                              text: 'Sil',
-                              style: 'destructive',
-                              onPress: () => removeProvider(item.id),
-                            },
-                          ])
-                        }
-                        style={styles.removeButton}
-                      >
-                        <Text style={styles.removeButtonText}>Sil</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                />
-                <TouchableOpacity 
-                  style={styles.addButton} 
-                  onPress={() => setIsAdding(true)}
-                >
-                  <Text style={styles.addButtonText}>+ Add New Provider</Text>
+      {modalVisible ? (
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>AI Providers</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Text style={styles.closeText}>Close</Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              // Add New Provider Form
-              <View style={styles.formContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Provider Name (e.g., Work OpenAI)"
-                  value={newName}
-                  onChangeText={setNewName}
-                />
-                <View style={styles.typeSelector}>
-                  <TouchableOpacity 
-                    style={[styles.typeButton, newType === 'openai' && styles.typeActive]}
-                    onPress={() => {
-                      setNewType('openai');
-                      setNewUrl('https://api.openai.com/v1');
-                      setNewModel('gpt-4o');
-                      setAvailableModels([]);
-                      setModelFetchError('');
-                    }}
-                  >
-                    <Text>OpenAI</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.typeButton, newType === 'ollama' && styles.typeActive]}
-                    onPress={() => {
-                      setNewType('ollama');
-                      setNewUrl('http://127.0.0.1:11434');
-                      setNewModel('qwen2.5:3b');
-                      setAvailableModels([]);
-                      setModelFetchError('');
-                    }}
-                  >
-                    <Text>Ollama</Text>
-                  </TouchableOpacity>
-                </View>
-                
-                <TextInput
-                  style={styles.input}
-                  placeholder="Base URL"
-                  value={newUrl}
-                  onChangeText={setNewUrl}
-                  autoCapitalize="none"
-                />
+              </View>
 
-                <TextInput
-                  style={styles.input}
-                  placeholder={newType === 'ollama' ? 'Model (örn. qwen2.5:3b)' : 'Model (örn. gpt-4o)'}
-                  value={newModel}
-                  onChangeText={setNewModel}
-                  autoCapitalize="none"
-                />
-
-                {newType === 'ollama' && (
-                  <View style={styles.ollamaModelsSection}>
-                    <TouchableOpacity style={styles.fetchModelsButton} onPress={handleFetchModels} disabled={isFetchingModels}>
-                      <Text style={styles.fetchModelsButtonText}>
-                        {isFetchingModels ? 'Modeller getiriliyor...' : 'Local modelleri çek'}
-                      </Text>
-                    </TouchableOpacity>
-                    {modelFetchError ? <Text style={styles.errorText}>{modelFetchError}</Text> : null}
-                    {availableModels.length > 0 && (
-                      <View style={styles.modelList}>
-                        {availableModels.map((model) => (
-                          <TouchableOpacity
-                            key={model}
-                            style={[styles.modelChip, newModel === model && styles.modelChipActive]}
-                            onPress={() => setNewModel(model)}
-                          >
-                            <Text style={[styles.modelChipText, newModel === model && styles.modelChipTextActive]}>{model}</Text>
-                          </TouchableOpacity>
-                        ))}
+              {!isAdding ? (
+                // List Existing Providers
+                <>
+                  <FlatList
+                    data={providers}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item }) => (
+                      <View
+                        style={[
+                          styles.providerItem, 
+                          activeProviderId === item.id && styles.providerItemActive
+                        ]}
+                      >
+                        <TouchableOpacity
+                          style={styles.providerSelectArea}
+                          onPress={() => {
+                            setActiveProvider(item.id);
+                            setModalVisible(false);
+                          }}
+                        >
+                          <Text style={[
+                            styles.providerName,
+                            activeProviderId === item.id && styles.providerNameActive
+                          ]}>
+                            {item.name} ({item.type})
+                          </Text>
+                          <Text style={styles.providerModel}>{item.defaultModel}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() =>
+                            Alert.alert('Sağlayıcı silinsin mi?', `${item.name} kalıcı olarak silinecek.`, [
+                              { text: 'Vazgeç', style: 'cancel' },
+                              {
+                                text: 'Sil',
+                                style: 'destructive',
+                                onPress: () => removeProvider(item.id),
+                              },
+                            ])
+                          }
+                          style={styles.removeButton}
+                        >
+                          <Text style={styles.removeButtonText}>Sil</Text>
+                        </TouchableOpacity>
                       </View>
                     )}
-                  </View>
-                )}
-                
-                {newType === 'openai' && (
+                  />
+                  <TouchableOpacity 
+                    style={styles.addButton} 
+                    onPress={() => setIsAdding(true)}
+                  >
+                    <Text style={styles.addButtonText}>+ Add New Provider</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                // Add New Provider Form
+                <View style={styles.formContainer}>
                   <TextInput
                     style={styles.input}
-                    placeholder="API Key (sk-...)"
-                    value={newKey}
-                    onChangeText={setNewKey}
-                    secureTextEntry
+                    placeholder="Provider Name (e.g., Work OpenAI)"
+                    value={newName}
+                    onChangeText={setNewName}
                   />
-                )}
-                
-                <View style={styles.formActions}>
-                  <TouchableOpacity onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
-                    <Text>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleAdd} style={styles.saveBtn}>
-                    <Text style={{color: 'white'}}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+                  <View style={styles.typeSelector}>
+                    <TouchableOpacity 
+                      style={[styles.typeButton, newType === 'openai' && styles.typeActive]}
+                      onPress={() => {
+                        setNewType('openai');
+                        setNewUrl('https://api.openai.com/v1');
+                        setNewModel('gpt-4o');
+                        setAvailableModels([]);
+                        setModelFetchError('');
+                      }}
+                    >
+                      <Text>OpenAI</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.typeButton, newType === 'ollama' && styles.typeActive]}
+                      onPress={() => {
+                        setNewType('ollama');
+                        setNewUrl('http://127.0.0.1:11434');
+                        setNewModel('qwen2.5:3b');
+                        setAvailableModels([]);
+                        setModelFetchError('');
+                      }}
+                    >
+                      <Text>Ollama</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Base URL"
+                    value={newUrl}
+                    onChangeText={setNewUrl}
+                    autoCapitalize="none"
+                  />
 
+                  <TextInput
+                    style={styles.input}
+                    placeholder={newType === 'ollama' ? 'Model (örn. qwen2.5:3b)' : 'Model (örn. gpt-4o)'}
+                    value={newModel}
+                    onChangeText={setNewModel}
+                    autoCapitalize="none"
+                  />
+
+                  {newType === 'ollama' && (
+                    <View style={styles.ollamaModelsSection}>
+                      <TouchableOpacity style={styles.fetchModelsButton} onPress={handleFetchModels} disabled={isFetchingModels}>
+                        <Text style={styles.fetchModelsButtonText}>
+                          {isFetchingModels ? 'Modeller getiriliyor...' : 'Local modelleri çek'}
+                        </Text>
+                      </TouchableOpacity>
+                      {modelFetchError ? <Text style={styles.errorText}>{modelFetchError}</Text> : null}
+                      {availableModels.length > 0 && (
+                        <View style={styles.modelList}>
+                          {availableModels.map((model) => (
+                            <TouchableOpacity
+                              key={model}
+                              style={[styles.modelChip, newModel === model && styles.modelChipActive]}
+                              onPress={() => setNewModel(model)}
+                            >
+                              <Text style={[styles.modelChipText, newModel === model && styles.modelChipTextActive]}>{model}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  
+                  {newType === 'openai' && (
+                    <TextInput
+                      style={styles.input}
+                      placeholder="API Key (sk-...)"
+                      value={newKey}
+                      onChangeText={setNewKey}
+                      secureTextEntry
+                    />
+                  )}
+                  
+                  <View style={styles.formActions}>
+                    <TouchableOpacity onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
+                      <Text>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleAdd} style={styles.saveBtn}>
+                      <Text style={{color: 'white'}}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      ) : null}
     </View>
   );
 };

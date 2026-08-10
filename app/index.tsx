@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, TextInput, TouchableOpacity, FlatList, StyleSheet, Text, 
-  KeyboardAvoidingView, Platform, Alert
+  KeyboardAvoidingView, Platform, Alert, Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
@@ -15,12 +15,23 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const { messages, addMessage, isGenerating, activeProviderId, clearMessages, resetAppState } = useAIStore();
 
+  const dismissKeyboard = () => {
+    if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      return;
+    }
+
+    Keyboard.dismiss();
+  };
+
   const handleSend = async () => {
     if (!inputText.trim() || isGenerating) return;
 
     addMessage({ id: createMessageId(), role: 'user', content: inputText.trim() });
     setInputText('');
-    Keyboard.dismiss();
+    dismissKeyboard();
 
     addMessage({ id: createMessageId(), role: 'assistant', content: '⏳ Bekleyin...', kind: 'status' });
     await generateResponse();
