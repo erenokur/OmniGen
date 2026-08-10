@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, TextInput, TouchableOpacity, FlatList, StyleSheet, Text, 
-  KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, Alert
+  KeyboardAvoidingView, Platform, Keyboard, Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
@@ -56,44 +56,44 @@ export default function ChatScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
-            <View style={styles.headerContent}>
-              <ProviderMenu />
-              <View style={styles.headerActions}>
-                <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
-                  <Text style={styles.clearButtonText}>Temizle</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.resetButton} onPress={handleResetApp}>
-                  <Text style={styles.resetButtonText}>Sıfırla</Text>
-                </TouchableOpacity>
-              </View>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+          <View style={styles.headerContent}>
+            <ProviderMenu />
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={[styles.clearButton, isGenerating && styles.clearButtonDisabled]} onPress={clearMessages} disabled={isGenerating}>
+                <Text style={styles.clearButtonText}>Temizle</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.resetButton} onPress={handleResetApp}>
+                <Text style={styles.resetButtonText}>Sıfırla</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <FlatList
-            data={messages}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <ChatBubble message={item} />}
-            contentContainerStyle={styles.listContent}
-          />
-
-          <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-            <TextInput
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder={activeProviderId ? "Mesaj yaz..." : "Sağlayıcı seçin"}
-              multiline
-              maxLength={1000}
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={isGenerating ? handleStop : handleSend}>
-              {isGenerating ? <Text style={styles.sendButtonText}>Durdur</Text> : <Text style={styles.sendButtonText}>Gönder</Text>}
-            </TouchableOpacity>
-          </View>
         </View>
-      </TouchableWithoutFeedback>
+
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ChatBubble message={item} />}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        />
+
+        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder={activeProviderId ? "Mesaj yaz..." : "Sağlayıcı seçin"}
+            multiline
+            maxLength={1000}
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={isGenerating ? handleStop : handleSend}>
+            {isGenerating ? <Text style={styles.sendButtonText}>Durdur</Text> : <Text style={styles.sendButtonText}>Gönder</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
