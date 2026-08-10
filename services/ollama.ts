@@ -1,5 +1,20 @@
 import { Message, Provider } from '../store/useAIStore';
 
+const parseStreamLine = (line: string) => {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  const payload = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+  if (!payload) return null;
+  if (payload === '[DONE]') return { done: true };
+
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+};
+
 export const fetchOllama = async (
   messages: Message[],
   provider: Provider,
@@ -43,19 +58,22 @@ export const fetchOllama = async (
 
     if (!response.body) {
       const rawText = await response.text();
-      try {
-        const data = JSON.parse(rawText);
-        if (data.message?.content) {
-          onChunk(data.message.content);
-          safeComplete();
-        } else if (data.error) {
-          onError(data.error);
-        } else {
-          onError(`Beklenmeyen Format:\n${rawText.substring(0, 100)}`);
-        }
-      } catch {
-        onError(`JSON Çözülemedi:\n${rawText.substring(0, 100)}`);
+      const parsed = parseStreamLine(rawText);
+      if (parsed?.error) {
+        onError(parsed.error);
+        return;
       }
+      if (parsed?.message?.content) {
+        onChunk(parsed.message.content);
+        safeComplete();
+        return;
+      }
+      if (rawText.trim()) {
+        onChunk(rawText.trim());
+        safeComplete();
+        return;
+      }
+      onError('Model yanıtı boş döndü.');
       return;
     }
 
@@ -72,32 +90,9 @@ export const fetchOllama = async (
       buffer = lines.pop() ?? '';
 
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
+        const data = parseStreamLine(line);
+        if (!data) continue;
 
-        try {
-          const data = JSON.parse(trimmed);
-          if (data.error) {
-            onError(data.error);
-            return;
-          }
-          if (data.message?.content) {
-            onChunk(data.message.content);
-          }
-          if (data.done) {
-            safeComplete();
-            return;
-          }
-        } catch {
-          onError(`JSON Çözülemedi:\n${trimmed.substring(0, 100)}`);
-          return;
-        }
-      }
-    }
-
-    if (buffer.trim()) {
-      try {
-        const data = JSON.parse(buffer.trim());
         if (data.error) {
           onError(data.error);
           return;
@@ -105,9 +100,24 @@ export const fetchOllama = async (
         if (data.message?.content) {
           onChunk(data.message.content);
         }
-      } catch {
-        onError(`JSON Çözülemedi:\n${buffer.trim().substring(0, 100)}`);
+        if (data.done) {
+          safeComplete();
+          return;
+        }
+      }
+    }
+
+    if (buffer.trim()) {
+      const data = parseStreamLine(buffer);
+      if (!data) {
+        if (buffer.trim()) {
+          onChunk(buffer.trim());
+        }
+      } else if (data.error) {
+        onError(data.error);
         return;
+      } else if (data.message?.content) {
+        onChunk(data.message.content);
       }
     }
 

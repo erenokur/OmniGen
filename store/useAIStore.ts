@@ -9,6 +9,7 @@ export interface Message {
   role: Role;
   content: string;
   kind?: 'status';
+  createdAt?: number;
 }
 
 export interface Provider {
@@ -27,6 +28,7 @@ interface AIStore {
   isGenerating: boolean;
   
   addMessage: (message: Message) => void;
+  updateMessageContent: (id: string, content: string) => void;
   updateLastMessage: (chunk: string) => void;
   replaceLastMessage: (content: string) => void; // Yeni eklendi!
   removeStatusMessages: () => void;
@@ -47,7 +49,22 @@ export const useAIStore = create<AIStore>()(
       isGenerating: false,
 
       addMessage: (message) => 
-        set((state) => ({ messages: [...state.messages, message] })),
+        set((state) => ({
+          messages: [
+            ...state.messages,
+            {
+              ...message,
+              createdAt: message.createdAt ?? Date.now(),
+            },
+          ],
+        })),
+
+      updateMessageContent: (id, content) =>
+        set((state) => ({
+          messages: state.messages.map((message) =>
+            message.id === id ? { ...message, content } : message
+          ),
+        })),
         
       updateLastMessage: (chunk) =>
         set((state) => {
