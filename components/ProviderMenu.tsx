@@ -87,7 +87,7 @@ export const ProviderMenu = () => {
         <Modal
           animationType="slide"
           transparent={true}
-          visible={modalVisible}
+          visible
           onRequestClose={() => setModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
