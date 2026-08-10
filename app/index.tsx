@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, TextInput, TouchableOpacity, FlatList, StyleSheet, Text, 
-  KeyboardAvoidingView, Platform, Keyboard, Alert
+  KeyboardAvoidingView, Platform, Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAIStore } from '../store/useAIStore';
