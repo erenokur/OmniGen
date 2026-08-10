@@ -4,6 +4,49 @@ import { createMessageId } from '../utils/messageId';
 let activeController: AbortController | null = null;
 let isStoppedByUser = false;
 
+const stripJsonCodeFence = (text: string) => {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced?.[1]?.trim() ?? trimmed;
+};
+
+const extractReadableTextFromJson = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    return text.length > 0 ? text : null;
+  }
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => extractReadableTextFromJson(item))
+      .filter((item): item is string => typeof item === 'string' && item.length > 0);
+    return parts.length > 0 ? parts.join('\n') : null;
+  }
+
+  if (!value || typeof value !== 'object') return null;
+
+  const objectValue = value as Record<string, unknown>;
+  const preferredKeys = ['text', 'response', 'content', 'output', 'answer', 'result', 'message'];
+  for (const key of preferredKeys) {
+    const extracted = extractReadableTextFromJson(objectValue[key]);
+    if (extracted) return extracted;
+  }
+
+  return null;
+};
+
+const toReadableAssistantText = (rawText: string) => {
+  const candidate = stripJsonCodeFence(rawText);
+  if (!candidate) return rawText;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    return extractReadableTextFromJson(parsed) ?? rawText;
+  } catch {
+    return rawText;
+  }
+};
+
 export const stopGeneration = () => {
   if (!activeController) return;
   isStoppedByUser = true;
@@ -33,6 +76,7 @@ export const generateResponse = async () => {
   let waitingMinute = 0;
   let isFinished = false;
   let hasResponseStarted = false;
+  let fullAssistantResponse = '';
   isStoppedByUser = false;
 
   try {
@@ -66,6 +110,7 @@ export const generateResponse = async () => {
           provider,
           (text) => {
             if (isFinished) return;
+            fullAssistantResponse += text;
             if (!hasResponseStarted) {
               hasResponseStarted = true;
               clearInterval(countdownId);
@@ -97,6 +142,10 @@ export const generateResponse = async () => {
                 content: '⚠️ Model yanıtı boş döndü.',
               });
               return;
+            }
+            const normalizedText = toReadableAssistantText(fullAssistantResponse);
+            if (normalizedText !== fullAssistantResponse) {
+              useAIStore.getState().replaceLastMessage(normalizedText);
             }
             removeStatusMessages();
           },
